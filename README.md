@@ -1,14 +1,138 @@
-# astrbot-plugin-helloworld
+# 天气API插件
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+一个基于 AstrBot 的插件，支持调用外部 API 获取文本或图片，并提供管理员定时发送功能。
 
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
+---
 
-# Supports
+## 功能介绍
 
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+- 📝 调用 API 获取**文本**内容并发送
+- 🖼️ 调用 API 获取**图片**并发送
+- ⏰ 管理员可添加**定时任务**（按时间点 或 按间隔）
+- 🔒 定时任务管理指令需要**管理员权限**
+
+---
+
+## 安装方法
+
+将插件文件夹放到 AstrBot 的 `data/plugins/` 目录下，重启 AstrBot 即可自动加载。
+
+```
+data/
+└── plugins/
+    └── astrbot_plugin_api_caller/
+        ├── main.py
+        ├── metadata.yaml
+        └── README.md
+```
+
+---
+
+## 配置
+
+打开 `main.py`，修改以下两行为你的实际 API 地址和 Key：
+
+```python
+self.api_base_url = "https://api.example.com"  # 替换为你的 API 地址
+self.api_key = "YOUR_API_KEY"                  # 替换为你的 API Key
+```
+
+---
+
+## 指令说明
+
+### 📢 所有人可用
+
+| 指令 | 说明 | 示例 |
+|---|---|---|
+| `/天气text <关键词>` | 调用 API 返回文本 | `/天气text 北京` |
+| `/天气img <关键词>` | 调用 API 返回图片 | `/天气img 北京` |
+
+### 🔒 管理员专用
+
+| 指令 | 说明 | 示例 |
+|---|---|---|
+| `/定时 add time <HH:MM> <text\|image> <关键词>` | 每天固定时间发送 | `/定时 add time 08:00 text 早报` |
+| `/定时 add interval <分钟> <text\|image> <关键词>` | 每隔 N 分钟发送 | `/定时 add interval 30 image 猫咪` |
+| `/定时 del <ID>` | 删除指定定时任务 | `/定时 del 1` |
+| `/定时 list` | 查看所有定时任务 | `/定时 list` |
+
+---
+
+## 使用示例
+
+**手动查询文本：**
+```
+用户：/天气text 北京
+Bot：⏳ 请求中...
+Bot：北京今天晴，气温 12°C～22°C ...
+```
+
+**手动获取图片：**
+```
+用户：/天气img 北京
+Bot：⏳ 图片获取中...
+Bot：[图片]
+```
+
+**添加每天定时推送：**
+```
+管理员：/定时 add time 08:00 text 早报
+Bot：✅ 定时任务已添加
+     ID：1
+     模式：每天 08:00
+     类型：text
+     关键词：早报
+```
+
+**添加间隔定时推送：**
+```
+管理员：/定时 add interval 60 image 猫咪
+Bot：✅ 定时任务已添加
+     ID：2
+     模式：每 60.0 分钟
+     类型：image
+     关键词：猫咪
+```
+
+**查看任务列表：**
+```
+管理员：/定时 list
+Bot：📋 当前定时任务列表：
+     ID：1  模式：每天 08:00  类型：text  关键词：早报
+     ID：2  模式：每 60.0 分钟  类型：image  关键词：猫咪
+```
+
+**删除任务：**
+```
+管理员：/定时 del 1
+Bot：✅ 任务 1 已删除
+```
+
+---
+
+## 注意事项
+
+- 定时任务为**内存级别**，Bot 重启后任务会丢失，需重新添加
+- 定时消息会发送到**执行添加指令时的会话**（群聊或私聊）
+- 时间以**服务器本地时间**为准，请确认服务器时区正确
+
+---
+
+## 依赖
+
+- `aiohttp >= 3.8.0`（通常 AstrBot 环境已内置）
+
+---
+
+## 版本记录
+
+| 版本 | 说明 |
+|---|---|
+| v1.0 | 初始版本，支持 API 调用与定时任务 |
+
+---
+
+## 作者
+
+s-3-s
