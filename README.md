@@ -23,6 +23,7 @@ data/
     └── astrbot_plugin_api_caller/
         ├── main.py
         ├── metadata.yaml
+        ├── _conf_schema.json
         └── README.md
 ```
 
@@ -30,12 +31,16 @@ data/
 
 ## 配置
 
-打开 `main.py`，修改以下两行为你的实际 API 地址和 Key：
+在 AstrBot WebUI → 插件 → 找到本插件 → 点击**插件配置**，填写以下两项：
 
-```python
-self.api_base_url = "https://api.example.com"  # 替换为你的 API 地址
-self.api_key = "YOUR_API_KEY"                  # 替换为你的 API Key
-```
+| 配置项 | 说明 | 默认值 |
+|---|---|---|
+| `API 地址` | 天气 API 的请求地址 | `https://api.nycnm.cn/API/weather.php` |
+| `API Key` | 接口鉴权密钥（部分接口需要） | 留空 |
+
+> 💡 本插件默认使用 **柠柚API** 的天气接口（`https://api.nycnm.cn/API/weather.php`）。
+>
+> 如果服务端要求密钥，请前往 [https://api.nycnm.cn](https://api.nycnm.cn) 注册账号后获取 API 密钥，填入插件配置的 `API Key` 中即可。
 
 ---
 
@@ -45,15 +50,16 @@ self.api_key = "YOUR_API_KEY"                  # 替换为你的 API Key
 
 | 指令 | 说明 | 示例 |
 |---|---|---|
-| `/天气text <关键词>` | 调用 API 返回文本 | `/天气text 北京` |
-| `/天气img <关键词>` | 调用 API 返回图片 | `/天气img 北京` |
+| `/天气text <城市>` | 调用 API 返回文本天气 | `/天气text 北京` |
+| `/天气img <城市>` | 调用 API 返回天气图片 | `/天气img 北京` |
+| `/天气帮助` | 查看帮助与操作引导 | `/天气帮助` |
 
 ### 🔒 管理员专用
 
 | 指令 | 说明 | 示例 |
 |---|---|---|
-| `/定时 add time <HH:MM> <text\|image> <关键词>` | 每天固定时间发送 | `/定时 add time 08:00 text 早报` |
-| `/定时 add interval <分钟> <text\|image> <关键词>` | 每隔 N 分钟发送 | `/定时 add interval 30 image 猫咪` |
+| `/定时 add time <HH:MM> <text\|image> <城市>` | 每天固定时间发送 | `/定时 add time 08:00 text 北京` |
+| `/定时 add interval <分钟> <text\|image> <城市>` | 每隔 N 分钟发送 | `/定时 add interval 30 image 上海` |
 | `/定时 del <ID>` | 删除指定定时任务 | `/定时 del 1` |
 | `/定时 list` | 查看所有定时任务 | `/定时 list` |
 
@@ -75,32 +81,47 @@ Bot：⏳ 图片获取中...
 Bot：[图片]
 ```
 
+**查看帮助菜单：**
+```
+用户：/天气帮助
+Bot：📖 天气API插件使用说明
+     ...
+     请选择你想做的操作：
+     1️⃣ 查看使用示例
+     2️⃣ 查看任务列表
+     3️⃣ 删除任务
+     0️⃣ 退出
+
+用户：1
+Bot：📌 使用示例 ...
+```
+
 **添加每天定时推送：**
 ```
-管理员：/定时 add time 08:00 text 早报
+管理员：/定时 add time 08:00 text 北京
 Bot：✅ 定时任务已添加
      ID：1
      模式：每天 08:00
      类型：text
-     关键词：早报
+     关键词：北京
 ```
 
 **添加间隔定时推送：**
 ```
-管理员：/定时 add interval 60 image 猫咪
+管理员：/定时 add interval 60 image 上海
 Bot：✅ 定时任务已添加
      ID：2
      模式：每 60.0 分钟
      类型：image
-     关键词：猫咪
+     关键词：上海
 ```
 
 **查看任务列表：**
 ```
 管理员：/定时 list
 Bot：📋 当前定时任务列表：
-     ID：1  模式：每天 08:00  类型：text  关键词：早报
-     ID：2  模式：每 60.0 分钟  类型：image  关键词：猫咪
+     ID：1  模式：每天 08:00  类型：text  关键词：北京
+     ID：2  模式：每 60.0 分钟  类型：image  关键词：上海
 ```
 
 **删除任务：**
@@ -130,6 +151,7 @@ Bot：✅ 任务 1 已删除
 | 版本 | 说明 |
 |---|---|
 | v1.0 | 初始版本，支持 API 调用与定时任务 |
+| v1.1 | 添加天气帮助交互菜单，支持 WebUI 配置 |
 
 ---
 

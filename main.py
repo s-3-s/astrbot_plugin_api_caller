@@ -12,26 +12,29 @@ class MyPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
 
-        # ── API 配置，替换为你的实际地址和 Key ──
-        self.api_base_url = "https://api.example.com"
-        self.api_key = "YOUR_API_KEY"
+        # 从 WebUI 插件配置中读取
+        self.api_base_url = self.config.get("api_base_url", "https://api.nycnm.cn/API/weather.php")
+        self.api_key = self.config.get("api_key", "")
 
         # 存储所有定时任务
         self.scheduled_tasks: Dict[str, dict] = {}
         self.task_counter = 0
 
     async def initialize(self):
-        logger.info("API Caller 插件已加载")
+        logger.info("天气API插件已加载")
 
     # ══════════════════════════════════════════
     # 工具方法：调用 API
     # ══════════════════════════════════════════
 
     async def fetch_text(self, keyword: str) -> str:
+        params = {"q": keyword}
+        if self.api_key:
+            params["token"] = self.api_key
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{self.api_base_url}/text",
-                params={"q": keyword, "token": self.api_key},
+                self.api_base_url,
+                params=params,
                 timeout=aiohttp.ClientTimeout(total=10)
             ) as resp:
                 if resp.status != 200:
@@ -40,10 +43,13 @@ class MyPlugin(Star):
                 return data.get("result", "API 没有返回内容")
 
     async def fetch_image_url(self, keyword: str) -> str:
+        params = {"q": keyword}
+        if self.api_key:
+            params["token"] = self.api_key
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{self.api_base_url}/image",
-                params={"q": keyword, "token": self.api_key},
+                self.api_base_url,
+                params=params,
                 timeout=aiohttp.ClientTimeout(total=20)
             ) as resp:
                 if resp.status != 200:
@@ -57,10 +63,10 @@ class MyPlugin(Star):
 
     @filter.command("天气text")
     async def api_text(self, event: AstrMessageEvent):
-        """调用 API 返回文本，用法：/天气text <关键词>"""
+        """调用 API 返回文本，用法：/天气text <城市>"""
         keyword = event.message_str.strip()
         if not keyword:
-            yield event.plain_result("❌ 用法：/天气text <关键词>")
+            yield event.plain_result("❌ 用法：/天气text <城市>，例如：/天气text 北京")
             return
         yield event.plain_result("⏳ 请求中...")
         try:
@@ -72,10 +78,10 @@ class MyPlugin(Star):
 
     @filter.command("天气img")
     async def api_image(self, event: AstrMessageEvent):
-        """调用 API 返回图片，用法：/天气img <关键词>"""
+        """调用 API 返回图片，用法：/天气img <城市>"""
         keyword = event.message_str.strip()
         if not keyword:
-            yield event.plain_result("❌ 用法：/天气img <关键词>")
+            yield event.plain_result("❌ 用法：/天气img <城市>，例如：/天气img 北京")
             return
         yield event.plain_result("⏳ 图片获取中...")
         try:
@@ -89,6 +95,112 @@ class MyPlugin(Star):
             yield event.plain_result(f"❌ 错误：{e}")
 
     # ══════════════════════════════════════════
+    # 帮助指令（所有人可用）
+    # ══════════════════════════════════════════
+
+    @filter.command("天气帮助")
+    async def help_cmd(self, event: AstrMessageEvent):
+        """发送使用帮助并引导操作"""
+        yield event.plain_result(
+            "📖 天气API插件使用说明\n"
+            "\n"
+            "━━━━━━ 所有人可用 ━━━━━━\n"
+            "🔹 /天气text <城市>  获取文字天气\n"
+            "🔹 /天气img <城市>   获取天气图片\n"
+            "\n"
+            "━━━━━━ 管理员专用 ━━━━━━\n"
+            "🔸 /定时 add time <HH:MM> <text|image> <城市>\n"
+            "🔸 /定时 add interval <分钟> <text|image> <城市>\n"
+            "🔸 /定时 del <ID>  删除定时任务\n"
+            "🔸 /定时 list      查看所有定时任务\n"
+            "\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "请选择你想做的操作：\n"
+            "  1️⃣  查看使用示例\n"
+            "  2️⃣  查看任务列表\n"
+            "  3️⃣  删除任务\n"
+            "  0️⃣  退出"
+        )
+
+        try:
+            resp = await event.wait_for_reply(timeout=30)
+            choice = resp.message_str.strip()
+        except TimeoutError:
+            yield event.plain_result("⏰ 等待超时，已退出帮助菜单")
+            return
+
+        if choice == "1":
+            yield event.plain_result(
+                "📌 使用示例\n"
+                "\n"
+                "查询文字天气：\n"
+                "  /天气text 北京\n"
+                "\n"
+                "查询天气图片：\n"
+                "  /天气img 上海\n"
+                "\n"
+                "每天 08:00 推送北京天气：\n"
+                "  /定时 add time 08:00 text 北京\n"
+                "\n"
+                "每 60 分钟推送一次天气图：\n"
+                "  /定时 add interval 60 image 广州"
+            )
+
+        elif choice == "2":
+            if not self.scheduled_tasks:
+                yield event.plain_result("📋 当前没有定时任务")
+            else:
+                lines = ["📋 当前定时任务列表："]
+                for tid, item in self.scheduled_tasks.items():
+                    info = item["info"]
+                    lines.append(
+                        f"\n  ID：{tid}\n"
+                        f"  模式：{info['value']}\n"
+                        f"  类型：{info['type']}\n"
+                        f"  关键词：{info['keyword']}"
+                    )
+                yield event.plain_result("\n".join(lines))
+
+        elif choice == "3":
+            if not self._check_admin(event):
+                yield event.plain_result("❌ 删除任务需要管理员权限")
+                return
+
+            if not self.scheduled_tasks:
+                yield event.plain_result("📋 当前没有定时任务可删除")
+                return
+
+            lines = ["请输入要删除的任务 ID："]
+            for tid, item in self.scheduled_tasks.items():
+                info = item["info"]
+                lines.append(
+                    f"  ID：{tid}  {info['value']}  "
+                    f"{info['type']}  {info['keyword']}"
+                )
+            yield event.plain_result("\n".join(lines))
+
+            try:
+                resp2 = await event.wait_for_reply(timeout=30)
+                task_id = resp2.message_str.strip()
+            except TimeoutError:
+                yield event.plain_result("⏰ 等待超时，已退出")
+                return
+
+            if task_id not in self.scheduled_tasks:
+                yield event.plain_result(f"❌ 未找到任务 ID：{task_id}")
+                return
+
+            self.scheduled_tasks[task_id]["task"].cancel()
+            del self.scheduled_tasks[task_id]
+            yield event.plain_result(f"✅ 任务 {task_id} 已删除")
+
+        elif choice == "0":
+            yield event.plain_result("👋 已退出帮助菜单")
+
+        else:
+            yield event.plain_result("❌ 无效选项，请输入 0～3 的数字")
+
+    # ══════════════════════════════════════════
     # 定时任务统一入口（管理员专用）
     # ══════════════════════════════════════════
 
@@ -99,8 +211,8 @@ class MyPlugin(Star):
     async def schedule(self, event: AstrMessageEvent):
         """
         定时任务管理（管理员专用）
-        /定时 add time 08:00 text 早报
-        /定时 add interval 30 image 猫咪
+        /定时 add time 08:00 text 北京
+        /定时 add interval 30 image 上海
         /定时 del <ID>
         /定时 list
         """
@@ -123,8 +235,8 @@ class MyPlugin(Star):
         else:
             yield event.plain_result(
                 "📖 定时指令用法：\n"
-                "  /定时 add time 08:00 text 早报\n"
-                "  /定时 add interval 30 image 猫咪\n"
+                "  /定时 add time 08:00 text 北京\n"
+                "  /定时 add interval 30 image 上海\n"
                 "  /定时 del <ID>\n"
                 "  /定时 list"
             )
@@ -134,17 +246,12 @@ class MyPlugin(Star):
     # ══════════════════════════════════════════
 
     async def _schedule_add(self, event: AstrMessageEvent, args: list):
-        """
-        args 示例：
-          ["time", "08:00", "text", "早报"]
-          ["interval", "30", "image", "猫咪"]
-        """
         if len(args) < 4:
             yield event.plain_result(
                 "❌ 参数不足\n"
                 "用法：\n"
-                "  /定时 add time <HH:MM> <text|image> <关键词>\n"
-                "  /定时 add interval <分钟> <text|image> <关键词>"
+                "  /定时 add time <HH:MM> <text|image> <城市>\n"
+                "  /定时 add interval <分钟> <text|image> <城市>"
             )
             return
 
@@ -304,4 +411,4 @@ class MyPlugin(Star):
             item["task"].cancel()
             logger.info(f"[定时任务 {task_id}] 已随插件卸载取消")
         self.scheduled_tasks.clear()
-        logger.info("API Caller 插件已卸载")
+        logger.info("天气API插件已卸载")

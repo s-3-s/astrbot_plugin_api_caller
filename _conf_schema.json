@@ -1,0 +1,14 @@
+{
+  "api_base_url": {
+    "description": "API 地址",
+    "type": "string",
+    "hint": "填写你的 API 完整地址，例如 https://api.example.com",
+    "default": "https://api.nycnm.cn/API/weather.php"
+  },
+  "api_key": {
+    "description": "API Key",
+    "type": "string",
+    "hint": "填写你的 API 鉴权 Key",
+    "default": ""
+  }
+}
