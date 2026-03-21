@@ -4,6 +4,7 @@ import tempfile
 import os
 import json
 import datetime
+import zoneinfo
 from urllib.parse import quote
 from pathlib import Path
 from typing import Dict
@@ -20,7 +21,7 @@ PLUGIN_DATA_DIR.mkdir(parents=True, exist_ok=True)
     "astrbot_plugin_api_caller",
     "YourName",
     "天气查询 + 定时发送插件",
-    "1.4.0",
+    "1.4.1",
 )
 class MyPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
@@ -29,9 +30,19 @@ class MyPlugin(Star):
         self.api_url = getattr(config, "api_base_url", "https://api.nycnm.cn/API/weather.php")
         self.api_key = getattr(config, "api_key", "")
         self.default_format = getattr(config, "default_format", "image")
+        tz_name = getattr(config, "timezone", "Asia/Shanghai")
+        try:
+            self.tz = zoneinfo.ZoneInfo(tz_name)
+        except Exception:
+            logger.warning(f"[时区] 无效时区 '{tz_name}'，已回退为 Asia/Shanghai")
+            self.tz = zoneinfo.ZoneInfo("Asia/Shanghai")
         self.scheduled_tasks: Dict[str, dict] = {}
         self.task_counter = 0
         self.tasks_file = str(PLUGIN_DATA_DIR / "tasks.json")
+
+    def _now(self) -> datetime.datetime:
+        """获取当前时区的时间"""
+        return datetime.datetime.now(self.tz)
 
     async def initialize(self):
         logger.info("天气API插件已加载")
@@ -481,7 +492,7 @@ class MyPlugin(Star):
         logger.info(f"[定时任务 {task_id}] 启动，每天 {hour:02d}:{minute:02d} 执行")
         try:
             while True:
-                now = datetime.datetime.now()
+                now = self._now()
                 target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
                 if target <= now:
                     target += datetime.timedelta(days=1)
