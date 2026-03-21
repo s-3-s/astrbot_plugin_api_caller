@@ -10,5 +10,40 @@
     "type": "string",
     "hint": "填写你的 API 鉴权 Key",
     "default": ""
+  },
+  "default_format": {
+    "description": "默认天气格式",
+    "type": "string",
+    "hint": "使用 /天气 指令时的默认返回格式",
+    "default": "image",
+    "options": ["image", "text"]
+  },
+  "timezone": {
+    "description": "时区",
+    "type": "string",
+    "hint": "定时任务和时间显示所使用的时区",
+    "default": "Asia/Shanghai",
+    "options": [
+      "Asia/Shanghai",
+      "Asia/Tokyo",
+      "Asia/Singapore",
+      "Asia/Seoul",
+      "Asia/Hong_Kong",
+      "Asia/Taipei",
+      "Asia/Kolkata",
+      "Asia/Dubai",
+      "Europe/London",
+      "Europe/Paris",
+      "Europe/Berlin",
+      "Europe/Moscow",
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "America/Sao_Paulo",
+      "Pacific/Auckland",
+      "Pacific/Sydney",
+      "UTC"
+    ]
   }
 }
